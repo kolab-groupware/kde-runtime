@@ -129,26 +129,27 @@ void KTimeZoned::init(bool restart)
 // zone to the config file and notify interested parties.
 void KTimeZoned::updateLocalZone()
 {
+    mLocalZone = mConfigLocalZone;
     // On Windows, HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Time Zones
     // holds the time zone database. The TZI binary value is the TIME_ZONE_INFORMATION structure.
 
-    TIME_ZONE_INFORMATION tzinfo;
-    DWORD res =  GetTimeZoneInformation(&tzinfo);
-    if (res == TIME_ZONE_ID_INVALID) return; // hm
-    mLocalZone = QString::fromUtf16( reinterpret_cast<ushort*>( tzinfo.StandardName ) );
+    // TIME_ZONE_INFORMATION tzinfo;
+    // DWORD res =  GetTimeZoneInformation(&tzinfo);
+    // if (res == TIME_ZONE_ID_INVALID) return; // hm
+    // mLocalZone = QString::fromUtf16( reinterpret_cast<ushort*>( tzinfo.StandardName ) );
 
-    if (mConfigLocalZone != mLocalZone)
-    {
-        kDebug(1221) << "Local timezone is now: " << mLocalZone;
-        KConfig config(QLatin1String("ktimezonedrc"));
-        KConfigGroup group(&config, "TimeZones");
-        mConfigLocalZone = mLocalZone;
-        group.writeEntry(LOCAL_ZONE, mConfigLocalZone);
-        group.sync();
+    // if (mConfigLocalZone != mLocalZone)
+    // {
+    //     kDebug(1221) << "Local timezone is now: " << mLocalZone;
+    //     KConfig config(QLatin1String("ktimezonedrc"));
+    //     KConfigGroup group(&config, "TimeZones");
+    //     mConfigLocalZone = mLocalZone;
+    //     group.writeEntry(LOCAL_ZONE, mConfigLocalZone);
+    //     group.sync();
 
-        QDBusMessage message = QDBusMessage::createSignal("/Daemon", "org.kde.KTimeZoned", "configChanged");
-        QDBusConnection::sessionBus().send(message);
-    }
+    //     QDBusMessage message = QDBusMessage::createSignal("/Daemon", "org.kde.KTimeZoned", "configChanged");
+    //     QDBusConnection::sessionBus().send(message);
+    // }
 }
 
 
