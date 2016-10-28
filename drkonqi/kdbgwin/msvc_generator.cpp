@@ -104,7 +104,11 @@ void MsvcGenerator::LoadSymbol(const QString& module, DWORD64 dwBaseAddr)
     IMAGEHLP_MODULE64 moduleInfo;
     ZeroMemory(&moduleInfo, sizeof(moduleInfo));
     moduleInfo.SizeOfStruct = sizeof(moduleInfo);
-    SymGetModuleInfo64(m_process.GetHandle(), dwBaseAddr, &moduleInfo);
+    if (!SymGetModuleInfo64(m_process.GetHandle(), dwBaseAddr, &moduleInfo)) {
+        emit DebugLine(QString::fromLatin1("SymGetModuleInfo64 failed:  %1")
+        .arg(GetLastError()));
+        kError() << "SymGetModuleInfo64 failed: " << GetLastError();
+    }
 
     m_symbolsMap[module] = false; // default
     QString symbolType;

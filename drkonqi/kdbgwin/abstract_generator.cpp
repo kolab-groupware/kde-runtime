@@ -27,6 +27,8 @@
 #include "callbacks.h"
 
 #include <QStringList>
+#include <QFileInfo>
+#include <QtGlobal>
 
 AbstractBTGenerator::AbstractBTGenerator(const Process& process)
     : m_process(process)
@@ -152,8 +154,17 @@ void AbstractBTGenerator::Run(HANDLE hThread, bool bFaultingThread)
     m_currentFrame.AddrFrame.Mode = AddrModeFlat;
     m_currentFrame.AddrStack.Mode = AddrModeFlat;
 
-    SymSetOptions(SymGetOptions() | SYMOPT_UNDNAME | SYMOPT_LOAD_LINES);
-    SymInitialize(m_process.GetHandle(), NULL, FALSE);
+    SymSetOptions(SymGetOptions() | SYMOPT_UNDNAME | SYMOPT_LOAD_LINES | SYMOPT_DEBUG);
+    if (!SymInitialize(m_process.GetHandle(), NULL, FALSE)) {
+        kError() << "Failed to initialize: " << GetLastError();
+    }
+
+    QByteArray injectedPath = qgetenv("KCRASH_PDB_PATH");
+    QString searchPath = QString::fromLatin1(".;") + QFileInfo(m_process.GetPath()).absolutePath();
+    if (!injectedPath.isEmpty()) {
+        searchPath = searchPath + ";" + injectedPath;
+    }
+    SymSetSearchPath(m_process.GetHandle(), searchPath.toLatin1().constData());
 
     LoadSymbols();
 
@@ -217,8 +228,12 @@ void AbstractBTGenerator::LoadSymbols()
 
         QString strModule = i.key();
 
-        GetModuleInformation(m_process.GetHandle(), i.value(), &modInfo, sizeof(modInfo));
-        SymLoadModuleEx(
+        if (!GetModuleInformation(m_process.GetHandle(), i.value(), &modInfo, sizeof(modInfo))) {
+            emit DebugLine(QString::fromLatin1("SymGetModuleInfo64 failed:  %1")
+            .arg(GetLastError()));
+            kError() << "GetModuleInformation failed: " << GetLastError();
+        }
+        if (!SymLoadModuleEx(
             m_process.GetHandle(),
             NULL,
             (CHAR*) i.key().toLatin1().constData(),
@@ -226,7 +241,11 @@ void AbstractBTGenerator::LoadSymbols()
             (DWORD64) modInfo.lpBaseOfDll,
             modInfo.SizeOfImage,
             NULL,
-            0);
+            0)) {
+            emit DebugLine(QString::fromLatin1("SymGetModuleInfo64 failed:  %1")
+            .arg(GetLastError()));
+            kError() << "GetModuleInformation failed: " << GetLastError();
+        }
 
         LoadSymbol(strModule, (DWORD64) modInfo.lpBaseOfDll);
 
