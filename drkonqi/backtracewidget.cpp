@@ -206,7 +206,7 @@ void BacktraceWidget::loadData()
 
     if (m_btGenerator->state() == BacktraceGenerator::Loaded) {
         ui.m_backtraceEdit->setEnabled(true);
-        ui.m_backtraceEdit->setPlainText(m_btGenerator->backtrace());
+        ui.m_backtraceEdit->append(m_btGenerator->backtrace());
 
         // scroll to crash
         QTextCursor crashCursor = ui.m_backtraceEdit->document()->find("[KCrash Handler]");
